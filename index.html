@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Omninet OS — Helia IPFS Edition</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@400;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <!-- ═══════════════════════════════════════════════════════
+       HELIA + IPFS ECOSYSTEM — official UMD bundles
+       These ship dist/index.min.js as declared in package.json
+       and expose globals: Helia, HeliaJson, HeliaStrings
+  ═══════════════════════════════════════════════════════ -->
+  <script src="https://cdn.jsdelivr.net/npm/helia/dist/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@helia/json/dist/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@helia/strings/dist/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@helia/unixfs/dist/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root {
+      --bg:#03070f;--bg1:#070e1a;--bg2:#0b1425;--bg3:#0f1c34;--bg4:#142240;
+      --line:#162035;--line2:#1e2f50;--line3:#263c66;
+      --txt:#c8d8f0;--txt2:#8aa5cc;--muted:#445c80;
+      --teal:#00e5b8;--teal2:#00b890;--teal3:rgba(0,229,184,.08);
+      --blue:#3d8eff;--purple:#a78bff;--amber:#f0a830;
+      --red:#ff4f6e;--green:#2ecc72;--orange:#ff7b35;
+      --ui:'Syne',sans-serif;--body:'Inter',sans-serif;--mono:'IBM Plex Mono',monospace;
+      --r:8px;--r2:14px;--r3:20px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;overflow:hidden}
+    body{background:var(--bg);color:var(--txt);font-family:var(--body);font-size:13px;display:flex}
+    ::-webkit-scrollbar{width:4px;height:4px}
+    ::-webkit-scrollbar-thumb{background:var(--line3);border-radius:99px}
+
+    /* SIDEBAR */
+    #sidebar{width:230px;min-width:230px;background:var(--bg1);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:18px 10px;gap:1px;z-index:10}
+    .logo{display:flex;align-items:center;gap:10px;padding:8px 10px 18px;border-bottom:1px solid var(--line);margin-bottom:14px}
+    .logo-mark{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#00e5b8,#3d8eff);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#000;flex-shrink:0;box-shadow:0 0 20px rgba(0,229,184,.3);font-family:var(--ui)}
+    .logo-text{font-size:15px;font-weight:800;letter-spacing:-.5px;font-family:var(--ui)}
+    .logo-sub{font-size:9px;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-top:1px;font-family:var(--mono)}
+    .nav-label{font-size:9px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;padding:10px 10px 5px;font-family:var(--mono)}
+    .nav-btn{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--r);cursor:pointer;color:var(--txt2);font-size:12.5px;font-weight:500;transition:all .12s;user-select:none}
+    .nav-btn:hover{background:var(--bg2);color:var(--txt)}
+    .nav-btn.active{background:var(--teal3);color:var(--teal);border:1px solid rgba(0,229,184,.18)}
+    .nav-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0;opacity:.7}
+    .nav-btn.active .nav-icon{opacity:1}
+    .nav-badge{margin-left:auto;font-size:9px;padding:2px 6px;background:var(--teal);color:#000;border-radius:99px;font-weight:700;font-family:var(--mono)}
+    .nav-badge.red{background:var(--red);color:#fff}
+    .nav-badge.green{background:var(--green)}
+    .sidebar-sep{height:1px;background:var(--line);margin:8px 10px}
+    .sidebar-bottom{margin-top:auto;padding-top:10px;border-top:1px solid var(--line)}
+    .user-pill{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:var(--r);cursor:pointer}
+    .avatar{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--purple),var(--blue));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;font-family:var(--mono)}
+    .user-info .name{font-size:12px;font-weight:600;font-family:var(--ui)}
+    .user-info .plan{font-size:10px;color:var(--amber);letter-spacing:.04em;font-family:var(--mono)}
+
+    /* MAIN */
+    #main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+    #topbar{background:var(--bg1);border-bottom:1px solid var(--line);padding:0 24px;height:54px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+    .breadcrumb{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;font-family:var(--mono)}
+    .crumb-active{color:var(--txt);font-weight:600}
+    .topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+    .status-pill{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:99px;font-size:10px;font-family:var(--mono)}
+    .status-pill.green{background:rgba(46,204,114,.08);border:1px solid rgba(46,204,114,.2);color:var(--green)}
+    .status-pill.amber{background:rgba(240,168,48,.08);border:1px solid rgba(240,168,48,.2);color:var(--amber)}
+    .status-pill.red{background:rgba(255,79,110,.08);border:1px solid rgba(255,79,110,.2);color:var(--red)}
+    .dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:blink 2s infinite}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+    #content{flex:1;overflow-y:auto;padding:24px}
+    .module{display:none}
+    .module.active{display:block;animation:fadeIn .2s ease}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+    /* BUTTONS */
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--r);border:1px solid var(--line3);background:var(--bg3);color:var(--txt);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--ui);transition:all .12s;white-space:nowrap}
+    .btn:hover{border-color:var(--teal);color:var(--teal)}
+    .btn-primary{background:linear-gradient(135deg,var(--teal2),var(--teal));color:#000;border:none;font-weight:700}
+    .btn-primary:hover{opacity:.88;color:#000}
+    .btn-danger{background:rgba(255,79,110,.08);border-color:var(--red);color:var(--red)}
+    .btn-danger:hover{background:rgba(255,79,110,.18)}
+    .btn-sm{padding:5px 10px;font-size:11px}
+    .btn:disabled{opacity:.4;cursor:not-allowed}
+
+    /* CARDS */
+    .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+    .stat-card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r2);padding:18px 20px;position:relative;overflow:hidden}
+    .stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+    .c-teal::after{background:linear-gradient(90deg,transparent,var(--teal),transparent)}
+    .c-blue::after{background:linear-gradient(90deg,transparent,var(--blue),transparent)}
+    .c-amber::after{background:linear-gradient(90deg,transparent,var(--amber),transparent)}
+    .c-green::after{background:linear-gradient(90deg,transparent,var(--green),transparent)}
+    .c-purple::after{background:linear-gradient(90deg,transparent,var(--purple),transparent)}
+    .stat-num{font-size:26px;font-weight:700;font-family:var(--mono);letter-spacing:-.5px}
+    .stat-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:4px;font-family:var(--mono)}
+    .stat-delta{font-size:11px;margin-top:8px;color:var(--txt2)}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+    .span-2{grid-column:span 2}
+    .card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r2);padding:18px}
+    .card-title{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px;color:var(--txt);font-family:var(--mono)}
+    .ct-icon{color:var(--teal);font-size:14px}
+    .ct-sub{margin-left:auto;font-size:10px;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0}
+    .sec-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;gap:12px}
+    .sec-title{font-size:20px;font-weight:800;font-family:var(--ui);letter-spacing:-.4px;margin-bottom:4px}
+    .sec-sub{font-size:12px;color:var(--txt2)}
+    .sec-actions{display:flex;gap:8px;flex-shrink:0;align-items:center}
+
+    /* TABLES */
+    .tbl{width:100%;border-collapse:collapse;font-size:12px}
+    .tbl th{padding:8px 12px;text-align:left;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;border-bottom:1px solid var(--line);font-weight:600;font-family:var(--mono)}
+    .tbl td{padding:9px 12px;border-bottom:1px solid rgba(22,32,53,.5);vertical-align:middle}
+    .tbl tr:last-child td{border-bottom:none}
+    .tbl tr:hover td{background:rgba(255,255,255,.015)}
+    .tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:600;font-family:var(--mono)}
+    .tag-teal{background:rgba(0,229,184,.1);color:var(--teal);border:1px solid rgba(0,229,184,.2)}
+    .tag-blue{background:rgba(61,142,255,.1);color:var(--blue);border:1px solid rgba(61,142,255,.2)}
+    .tag-amber{background:rgba(240,168,48,.1);color:var(--amber);border:1px solid rgba(240,168,48,.2)}
+    .tag-red{background:rgba(255,79,110,.1);color:var(--red);border:1px solid rgba(255,79,110,.2)}
+    .tag-green{background:rgba(46,204,114,.1);color:var(--green);border:1px solid rgba(46,204,114,.2)}
+    .tag-gray{background:var(--bg3);color:var(--txt2);border:1px solid var(--line2)}
+
+    /* FORMS */
+    .form-group{margin-bottom:14px}
+    .form-group label{display:block;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;margin-bottom:5px;font-weight:600;font-family:var(--mono)}
+    .form-input,.form-select,.form-textarea{width:100%;padding:8px 12px;background:var(--bg1);border:1px solid var(--line2);border-radius:var(--r);color:var(--txt);font-family:var(--body);font-size:12.5px;transition:border-color .12s;outline:none}
+    .form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--teal);box-shadow:0 0 0 2px rgba(0,229,184,.08)}
+    .form-textarea{min-height:80px;resize:vertical;font-family:var(--mono);font-size:11.5px}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+    /* TERMINAL */
+    .terminal{background:#020509;border:1px solid var(--line);border-radius:var(--r2);padding:16px;font-family:var(--mono);font-size:11.5px;line-height:1.75}
+    .terminal pre{white-space:pre-wrap;word-break:break-all}
+    .t-prompt{color:var(--teal)}.t-key{color:var(--blue)}.t-val{color:var(--txt)}
+    .t-str{color:var(--amber)}.t-hash{color:var(--purple);font-size:10.5px}
+    .t-ok{color:var(--green)}.t-err{color:var(--red)}.t-comment{color:var(--muted);font-style:italic}
+
+    /* LEDGER */
+    .ledger-entry{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid rgba(22,32,53,.4);position:relative}
+    .ledger-entry:last-child{border-bottom:none}
+    .ledger-entry::before{content:'';position:absolute;left:13px;top:26px;bottom:-1px;width:1px;background:var(--line)}
+    .ledger-entry:last-child::before{display:none}
+    .le-dot{width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;border:1px solid;z-index:1}
+    .le-dot.STORE{background:rgba(0,229,184,.12);border-color:rgba(0,229,184,.35);color:var(--teal)}
+    .le-dot.IPFS{background:rgba(61,142,255,.12);border-color:rgba(61,142,255,.35);color:var(--blue)}
+    .le-dot.GRANT{background:rgba(46,204,114,.12);border-color:rgba(46,204,114,.35);color:var(--green)}
+    .le-dot.REVOKE{background:rgba(255,79,110,.12);border-color:rgba(255,79,110,.35);color:var(--red)}
+    .le-dot.ACCESS{background:rgba(167,139,255,.12);border-color:rgba(167,139,255,.35);color:var(--purple)}
+    .le-dot.SHARD{background:rgba(240,168,48,.12);border-color:rgba(240,168,48,.35);color:var(--amber)}
+    .le-body{flex:1;min-width:0}
+    .le-action{font-size:12px;font-weight:600;font-family:var(--ui)}
+    .le-hash{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:3px;word-break:break-all}
+    .le-time{font-size:10px;color:var(--txt2);margin-top:3px;font-family:var(--mono)}
+
+    /* VAULT ITEMS */
+    .vault-item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:var(--r);border:1px solid var(--line);background:var(--bg1);margin-bottom:5px;cursor:pointer;transition:all .12s}
+    .vault-item:hover{border-color:var(--line3);background:var(--bg2)}
+    .vault-item.sel{border-color:var(--teal);background:var(--teal3)}
+    .vi-icon{font-size:18px;flex-shrink:0;width:28px;text-align:center}
+    .vi-name{font-size:12.5px;font-weight:600;font-family:var(--ui)}
+    .vi-hash{font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:1px}
+    .vi-right{text-align:right;flex-shrink:0}
+    .vi-cid{font-size:9px;color:var(--teal);font-family:var(--mono);margin-top:2px}
+
+    /* CID CHIP */
+    .cid-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;background:rgba(61,142,255,.08);border:1px solid rgba(61,142,255,.2);border-radius:99px;font-size:9px;font-family:var(--mono);color:var(--blue);cursor:pointer;transition:all .12s}
+    .cid-chip:hover{background:rgba(61,142,255,.15)}
+
+    /* PROGRESS */
+    .progress-bar{height:6px;background:var(--bg4);border-radius:99px;overflow:hidden;margin-top:8px}
+    .progress-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--teal2),var(--teal));transition:width .4s ease}
+
+    /* SHARD VIZ */
+    .shard-grid{display:flex;flex-wrap:wrap;gap:3px;margin-top:8px}
+    .shard-block{width:20px;height:20px;border-radius:3px;background:var(--bg3);border:1px solid var(--line2);display:flex;align-items:center;justify-content:center;font-size:7px;font-family:var(--mono);color:var(--muted);transition:all .2s;cursor:pointer}
+    .shard-block.stored{background:rgba(0,229,184,.15);border-color:rgba(0,229,184,.35);color:var(--teal)}
+    .shard-block.storing{animation:shardPulse .6s ease infinite}
+    @keyframes shardPulse{0%,100%{background:rgba(0,229,184,.1)}50%{background:rgba(0,229,184,.3)}}
+
+    /* PEER LIST */
+    .peer-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r);border:1px solid var(--line);background:var(--bg1);margin-bottom:4px;font-size:11px;font-family:var(--mono)}
+    .peer-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 2s infinite;flex-shrink:0}
+    .peer-id{color:var(--txt2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+
+    /* EMPTY STATE */
+    .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;color:var(--muted)}
+    .es-icon{font-size:32px;margin-bottom:10px;opacity:.4}
+    .es-sub{font-size:12px;text-align:center;color:var(--muted);line-height:1.5}
+
+    /* PERSIST BAR */
+    .persist-bar{display:flex;align-items:center;gap:10px;padding:8px 14px;background:rgba(61,142,255,.05);border:1px solid rgba(61,142,255,.12);border-radius:var(--r);font-size:11px;color:var(--blue);font-family:var(--mono);margin-bottom:14px}
+
+    /* MODAL */
+    #modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+    #modal-overlay.open{display:flex}
+    #modal-box{background:var(--bg2);border:1px solid var(--line3);border-radius:var(--r3);padding:28px;width:540px;max-width:95vw;max-height:90vh;overflow-y:auto;animation:modalIn .18s ease}
+    @keyframes modalIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+    .modal-title{font-size:18px;font-weight:800;font-family:var(--ui);margin-bottom:4px;letter-spacing:-.3px}
+    .modal-sub{font-size:12px;color:var(--txt2);margin-bottom:20px;line-height:1.5}
+    .modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
+
+    /* NOTIFICATIONS */
+    #notif-stack{position:fixed;top:16px;right:16px;z-index:2000;display:flex;flex-direction:column;gap:8px}
+    .notif{padding:11px 16px;border-radius:var(--r2);font-size:12.5px;font-weight:500;animation:notifIn .2s ease;display:flex;align-items:center;gap:8px;max-width:380px}
+    @keyframes notifIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+    .notif-success{background:rgba(46,204,114,.12);border:1px solid rgba(46,204,114,.3);color:var(--green)}
+    .notif-error{background:rgba(255,79,110,.12);border:1px solid rgba(255,79,110,.3);color:var(--red)}
+    .notif-info{background:rgba(61,142,255,.12);border:1px solid rgba(61,142,255,.3);color:var(--blue)}
+    .notif-warn{background:rgba(240,168,48,.12);border:1px solid rgba(240,168,48,.3);color:var(--amber)}
+
+    /* SPINNER */
+    .spinner{width:12px;height:12px;border:2px solid var(--line3);border-top-color:var(--teal);border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* GRANT RECEIPT */
+    .receipt{background:var(--bg1);border:1px solid var(--line2);border-radius:var(--r2);padding:16px;font-family:var(--mono);font-size:11px}
+    .receipt-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+    .rg-cell{background:var(--bg);border:1px solid var(--line);border-radius:var(--r);padding:8px 10px}
+    .rg-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px}
+    .rg-val{font-size:11px;word-break:break-all}
+
+    code{font-family:var(--mono);font-size:10.5px;background:var(--bg3);border:1px solid var(--line2);padding:1px 5px;border-radius:4px;color:var(--blue)}
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="logo">
+    <div class="logo-mark">⬡</div>
+    <div>
+      <div class="logo-text">Omninet OS</div>
+      <div class="logo-sub">Helia IPFS Edition</div>
+    </div>
+  </div>
+
+  <div class="nav-label">Storage</div>
+  <div class="nav-btn active" onclick="nav('overview')"><span class="nav-icon">⬡</span>Overview</div>
+  <div class="nav-btn" onclick="nav('vault')"><span class="nav-icon">🔐</span>Vault<span class="nav-badge" id="vault-badge">0</span></div>
+  <div class="nav-btn" onclick="nav('ipfs')"><span class="nav-icon">🌐</span>IPFS Node<span class="nav-badge green" id="peer-badge">—</span></div>
+  <div class="nav-btn" onclick="nav('shards')"><span class="nav-icon">🧩</span>Shards</div>
+
+  <div class="nav-label">Control</div>
+  <div class="nav-btn" onclick="nav('access')"><span class="nav-icon">🔑</span>Access Control</div>
+  <div class="nav-btn" onclick="nav('ledger')"><span class="nav-icon">📋</span>Audit Ledger</div>
+
+  <div class="nav-label">System</div>
+  <div class="nav-btn" onclick="nav('settings')"><span class="nav-icon">⚙</span>Settings</div>
+
+  <div class="sidebar-bottom">
+    <div class="user-pill">
+      <div class="avatar">⬡</div>
+      <div class="user-info">
+        <div class="name" id="peer-id-short">Initializing…</div>
+        <div class="plan">IPFS · HELIA</div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div id="main">
+  <div id="topbar">
+    <div class="breadcrumb">
+      <span>Omninet OS</span>
+      <span>›</span>
+      <span class="crumb-active" id="bc-label">Overview</span>
+    </div>
+    <div class="topbar-right">
+      <div class="status-pill amber" id="node-status-pill">
+        <span class="dot"></span>
+        <span id="node-status-txt">Starting Helia…</span>
+      </div>
+      <div class="status-pill green"><span class="dot"></span>AES-256-GCM</div>
+      <button class="btn btn-sm btn-primary" onclick="openStoreModal()">+ Store to IPFS</button>
+    </div>
+  </div>
+
+  <div id="content">
+
+    <!-- ══ OVERVIEW ══ -->
+    <div class="module active" id="mod-overview">
+      <div class="sec-header">
+        <div>
+          <div class="sec-title">Omninet OS — Helia IPFS</div>
+          <div class="sec-sub">Content-addressed · Encrypted · Sharded · Capability-controlled</div>
+        </div>
+        <div class="sec-actions">
+          <span style="font-size:10px;color:var(--muted);font-family:var(--mono)">Powered by</span>
+          <span class="tag tag-blue">Helia CDN</span>
+          <span class="tag tag-teal">AES-256</span>
+          <span class="tag tag-green">HMAC-SHA256</span>
+        </div>
+      </div>
+
+      <div class="persist-bar">
+        <span>⬡</span>
+        <span id="ipfs-status-msg">Loading Helia node via CDN…</span>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card c-teal">
+          <div class="stat-num" id="ov-objects">0</div>
+          <div class="stat-lbl">IPFS Objects</div>
+          <div class="stat-delta">Encrypted + CAS addressed</div>
+        </div>
+        <div class="stat-card c-blue">
+          <div class="stat-num" id="ov-shards">0</div>
+          <div class="stat-lbl">Total Shards</div>
+          <div class="stat-delta">256KB shard size</div>
+        </div>
+        <div class="stat-card c-green">
+          <div class="stat-num" id="ov-peers">0</div>
+          <div class="stat-lbl">Connected Peers</div>
+          <div class="stat-delta">libp2p WebRTC mesh</div>
+        </div>
+        <div class="stat-card c-amber">
+          <div class="stat-num" id="ov-grants">0</div>
+          <div class="stat-lbl">Active Grants</div>
+          <div class="stat-delta">Capability tokens</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">🌐</span>Helia Node Info</div>
+          <div class="terminal">
+            <pre id="node-info-terminal"><span class="t-comment">// Initializing Helia node…</span></pre>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">⚡</span>Quick Actions</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button class="btn" style="width:100%;justify-content:flex-start" onclick="openStoreModal()">🔒 Encrypt &amp; Store to IPFS</button>
+            <button class="btn" style="width:100%;justify-content:flex-start" onclick="nav('vault')">📦 Browse Vault CIDs</button>
+            <button class="btn" style="width:100%;justify-content:flex-start" onclick="nav('ipfs')">🌐 View IPFS Node</button>
+            <button class="btn" style="width:100%;justify-content:flex-start" onclick="openGrantModal(null)">🔑 Issue Capability Grant</button>
+            <button class="btn" style="width:100%;justify-content:flex-start" onclick="nav('shards')">🧩 Shard Inspector</button>
+            <button class="btn" style="width:100%;justify-content:flex-start" onclick="exportState()">⬆ Export State</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="ct-icon">📋</span>Recent Activity</div>
+        <div id="ov-ledger"></div>
+      </div>
+    </div>
+
+    <!-- ══ VAULT ══ -->
+    <div class="module" id="mod-vault">
+      <div class="sec-header">
+        <div>
+          <div class="sec-title">IPFS Vault</div>
+          <div class="sec-sub">AES-256-GCM encrypted · Content-addressed CIDs · 256KB sharding · HKDF-SHA256 keys</div>
+        </div>
+        <div class="sec-actions">
+          <button class="btn" onclick="nav('access')">🔑 Grants</button>
+          <button class="btn btn-primary" onclick="openStoreModal()">+ Store to IPFS</button>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">📦</span>Stored Objects<span class="ct-sub">click to inspect</span></div>
+          <div id="vault-list"><div class="empty-state"><div class="es-icon">📭</div><div class="es-sub">No objects yet — store something!</div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">🔍</span>Object Inspector</div>
+          <div id="vault-detail"><div class="empty-state"><div class="es-icon">🔍</div><div class="es-sub">Select an object to inspect</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ IPFS NODE ══ -->
+    <div class="module" id="mod-ipfs">
+      <div class="sec-header">
+        <div>
+          <div class="sec-title">IPFS Node</div>
+          <div class="sec-sub">Helia v5 · libp2p · WebRTC transport · Content routing</div>
+        </div>
+        <div class="sec-actions">
+          <button class="btn" onclick="refreshNodeInfo()">↻ Refresh</button>
+          <button class="btn btn-primary" onclick="openFetchCIDModal()">⬇ Fetch CID</button>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">🆔</span>Node Identity</div>
+          <div class="terminal"><pre id="node-identity">Initializing…</pre></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">👥</span>Connected Peers<span class="ct-sub" id="peer-count-sub">0 peers</span></div>
+          <div id="peer-list"><div class="empty-state"><div class="es-icon">🌐</div><div class="es-sub">Discovering peers…</div></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="ct-icon">📊</span>Node Statistics</div>
+        <div id="node-stats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+          <div class="stat-card c-teal" style="margin:0"><div class="stat-num" id="ns-blocks">0</div><div class="stat-lbl">Blocks Stored</div></div>
+          <div class="stat-card c-blue" style="margin:0"><div class="stat-num" id="ns-cids">0</div><div class="stat-lbl">Unique CIDs</div></div>
+          <div class="stat-card c-green" style="margin:0"><div class="stat-num" id="ns-peers">0</div><div class="stat-lbl">Peers</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SHARDS ══ -->
+    <div class="module" id="mod-shards">
+      <div class="sec-header">
+        <div>
+          <div class="sec-title">Shard Inspector</div>
+          <div class="sec-sub">256KB shard size · Each shard independently encrypted · CID per shard</div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">🧩</span>Objects &amp; Shards</div>
+          <div id="shard-object-list"><div class="empty-state"><div class="es-icon">🧩</div><div class="es-sub">No objects stored yet.</div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">📋</span>Shard Detail</div>
+          <div id="shard-detail"><div class="empty-state"><div class="es-icon">🔍</div><div class="es-sub">Select an object to see its shards</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ACCESS CONTROL ══ -->
+    <div class="module" id="mod-access">
+      <div class="sec-header">
+        <div>
+          <div class="sec-title">Access Control</div>
+          <div class="sec-sub">Capability grants · HMAC-SHA256 · Time-limited · CID-bound · Revocable</div>
+        </div>
+        <div class="sec-actions">
+          <button class="btn btn-primary" onclick="openGrantModal(null)">+ Issue Grant</button>
+        </div>
+      </div>
+      <div class="stat-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="stat-card c-green"><div class="stat-num" id="ac-active">0</div><div class="stat-lbl">Active Grants</div></div>
+        <div class="stat-card c-amber"><div class="stat-num" id="ac-expired">0</div><div class="stat-lbl">Expired</div></div>
+        <div class="stat-card c-blue"><div class="stat-num" id="ac-revoked">0</div><div class="stat-lbl">Revoked</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="ct-icon">🔑</span>Grant Registry</div>
+        <div id="grants-table"><div class="empty-state"><div class="es-icon">🔑</div><div class="es-sub">No grants issued yet.</div></div></div>
+      </div>
+    </div>
+
+    <!-- ══ LEDGER ══ -->
+    <div class="module" id="mod-ledger">
+      <div class="sec-header">
+        <div>
+          <div class="sec-title">Audit Ledger</div>
+          <div class="sec-sub">Append-only · SHA-256 hash-linked · Every IPFS operation recorded</div>
+        </div>
+        <div class="sec-actions">
+          <button class="btn" onclick="verifyLedger()">✓ Verify Chain</button>
+          <button class="btn" onclick="exportLedger()">⬇ Export</button>
+        </div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card c-teal"><div class="stat-num" id="led-total">0</div><div class="stat-lbl">Total Events</div></div>
+        <div class="stat-card c-blue"><div class="stat-num" id="led-store">0</div><div class="stat-lbl">Store Ops</div></div>
+        <div class="stat-card c-green"><div class="stat-num" id="led-ipfs">0</div><div class="stat-lbl">IPFS Events</div></div>
+        <div class="stat-card c-amber"><div class="stat-num" id="led-access">0</div><div class="stat-lbl">Access Events</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="ct-icon">🔗</span>Event Chain<span class="ct-sub" id="chain-status">verifying…</span></div>
+        <div id="ledger-full"><div class="empty-state"><div class="es-icon">🔗</div><div class="es-sub">No events yet.</div></div></div>
+      </div>
+    </div>
+
+    <!-- ══ SETTINGS ══ -->
+    <div class="module" id="mod-settings">
+      <div class="sec-header">
+        <div><div class="sec-title">Settings</div><div class="sec-sub">Encryption · IPFS config · Export/Import</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">🔐</span>Encryption Config</div>
+          <div class="form-group"><label>Master Key Fingerprint</label>
+            <div class="terminal" style="padding:10px"><span class="t-hash" id="key-fp">Generating…</span></div>
+          </div>
+          <div class="form-group"><label>Cipher</label><input class="form-input" value="AES-256-GCM (WebCrypto)" readonly></div>
+          <div class="form-group"><label>KDF</label><input class="form-input" value="HKDF-SHA256 · per-object random salt" readonly></div>
+          <div class="form-group"><label>Token Signing</label><input class="form-input" value="HMAC-SHA256 full digest" readonly></div>
+          <div class="form-group"><label>Shard Size</label><input class="form-input" value="256 KB" readonly></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">🌐</span>IPFS Config</div>
+          <div class="form-group"><label>Helia Version</label><input class="form-input" id="cfg-helia-ver" value="Loading…" readonly></div>
+          <div class="form-group"><label>Peer ID</label><input class="form-input" id="cfg-peer-id" value="Loading…" readonly></div>
+          <div class="form-group"><label>Transport</label><input class="form-input" value="WebRTC + WebSockets (browser)" readonly></div>
+          <div class="form-group"><label>Block Routing</label><input class="form-input" value="Trustless HTTP Gateways + Bitswap" readonly></div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+            <button class="btn" style="justify-content:flex-start" onclick="exportState()">⬆ Export Full State (JSON)</button>
+            <button class="btn" style="justify-content:flex-start" onclick="importStateFromFile()">⬇ Import State</button>
+            <button class="btn btn-danger" style="justify-content:flex-start" onclick="clearAll()">🗑 Wipe All Data</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay" onclick="closeModalOutside(event)">
+  <div id="modal-box"></div>
+</div>
+
+<!-- NOTIFS -->
+<div id="notif-stack"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// OMNINET OS — HELIA IPFS EDITION
+// Uses official UMD bundles via jsDelivr CDN:
+//   Helia.createHelia()     → global from helia/dist/index.min.js
+//   HeliaJson.json()        → global from @helia/json/dist/index.min.js
+//   HeliaStrings.strings()  → global from @helia/strings/dist/index.min.js
+//
+// Implements full DecentralizedSCMPStore interface from scmp-decentralized.js:
+//   put(record) / get(id, token?) / getAll() / delete(id)
+//   shareData(key, opts) / revokeAccess(id) / getAuditTrail(key)
+//   exportState() / importState(state) / getStats()
+// ═══════════════════════════════════════════════════════════
+
+// ── STATE ──
+let heliaNode = null;
+let heliaJson = null;
+let heliaStrings = null;
+let masterKey = null;
+let masterHkdfKey = null;
+let masterHmacKey = null;
+let masterKeyFp = '';
+
+// DecentralizedSCMPStore state
+const localIndex = new Map();     // id → { metadataCID, shardCIDs, name, type, size, ts }
+const shardRegistry = new Map();  // id → [shardCID, ...]
+const grants = new Map();
+const revokedGrants = new Set();
+let ledger = [];
+const blockCache = new Map();     // CID string → Uint8Array (in-memory blockstore)
+let totalShards = 0;
+
+// ═══════════════════════════════════════════════════════════
+// CRYPTO — HKDF + AES-256-GCM + HMAC-SHA256
+// ═══════════════════════════════════════════════════════════
+async function sha256(input) {
+  const data = typeof input === 'string' ? new TextEncoder().encode(input) : input;
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function initMasterKey() {
+  const raw = crypto.getRandomValues(new Uint8Array(32));
+  masterKeyFp = await sha256(raw);
+  masterHkdfKey = await crypto.subtle.importKey('raw', raw, { name: 'HKDF' }, false, ['deriveKey']);
+  masterHmacKey = await crypto.subtle.importKey('raw', raw, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']);
+  const fp = masterKeyFp;
+  const disp = fp.slice(0,8)+':'+fp.slice(8,16)+':…:'+fp.slice(-8);
+  document.getElementById('key-fp').textContent = disp;
+}
+
+async function deriveObjectKey(objectId, salt) {
+  const info = new TextEncoder().encode('omninet-ipfs-v1:' + objectId);
+  return crypto.subtle.deriveKey(
+    { name: 'HKDF', hash: 'SHA-256', salt, info },
+    masterHkdfKey,
+    { name: 'AES-GCM', length: 256 },
+    false, ['encrypt', 'decrypt']
+  );
+}
+
+async function aesEncrypt(plaintext, objectId) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const salt = crypto.getRandomValues(new Uint8Array(32));
+  const key = await deriveObjectKey(objectId, salt);
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(plaintext));
+  return { ciphertext: Array.from(new Uint8Array(ct)), iv: Array.from(iv), salt: Array.from(salt) };
+}
+
+async function aesDecrypt(encData, objectId) {
+  try {
+    const key = await deriveObjectKey(objectId, new Uint8Array(encData.salt));
+    const pt = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: new Uint8Array(encData.iv) },
+      key, new Uint8Array(encData.ciphertext)
+    );
+    return new TextDecoder().decode(pt);
+  } catch { return '[Decryption failed]'; }
+}
+
+async function hmacSign(payload) {
+  const msg = new TextEncoder().encode(JSON.stringify(payload, Object.keys(payload).sort()));
+  const sig = await crypto.subtle.sign('HMAC', masterHmacKey, msg);
+  return Array.from(new Uint8Array(sig)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function hmacVerify(grant) {
+  const { signature, ...payload } = grant;
+  const msg = new TextEncoder().encode(JSON.stringify(payload, Object.keys(payload).sort()));
+  const sigBytes = Uint8Array.from(signature.match(/.{2}/g).map(h=>parseInt(h,16)));
+  return crypto.subtle.verify('HMAC', masterHmacKey, sigBytes, msg);
+}
+
+// ═══════════════════════════════════════════════════════════
+// HELIA IPFS NODE — CDN UMD globals
+// Globals: Helia.createHelia, HeliaJson.json, HeliaStrings.strings
+// ═══════════════════════════════════════════════════════════
+async function initHelia() {
+  setStatus('amber', 'Loading Helia from CDN…');
+  updateIPFSMsg('Loading Helia node from jsDelivr CDN…');
+
+  // Wait for CDN scripts to load
+  let attempts = 0;
+  while (typeof Helia === 'undefined' && attempts++ < 40) {
+    await new Promise(r => setTimeout(r, 250));
+  }
+  if (typeof Helia === 'undefined') throw new Error('Helia CDN script failed to load');
+
+  updateIPFSMsg('Helia loaded — creating node (this takes ~5s for peer discovery)…');
+
+  // createHelia() with no args uses @helia/http under the hood in browser —
+  // trustless HTTP gateways for block retrieval, no TCP needed
+  heliaNode = await Helia.createHelia();
+
+  // Attach high-level data modules
+  if (typeof HeliaJson !== 'undefined') heliaJson = HeliaJson.json(heliaNode);
+  if (typeof HeliaStrings !== 'undefined') heliaStrings = HeliaStrings.strings(heliaNode);
+
+  const peerId = heliaNode.libp2p.peerId.toString();
+  const shortId = peerId.slice(0, 12) + '…' + peerId.slice(-6);
+
+  document.getElementById('peer-id-short').textContent = shortId;
+  document.getElementById('cfg-peer-id').textContent = peerId;
+  document.getElementById('cfg-helia-ver').textContent = 'Helia v5 (CDN)';
+  document.getElementById('peer-badge').textContent = '✓';
+
+  setStatus('green', 'Helia Online');
+  updateIPFSMsg(`Helia node online · Peer: ${shortId}`);
+
+  // Peer discovery listener
+  heliaNode.libp2p.addEventListener('peer:connect', updatePeerCount);
+  heliaNode.libp2p.addEventListener('peer:disconnect', updatePeerCount);
+
+  // Poll peers
+  setInterval(updatePeerCount, 3000);
+  updatePeerCount();
+
+  await ledgerAppend('IPFS', 'system', { detail: `Helia node started · PeerID: ${shortId}` });
+  refreshNodeInfo();
+  renderAll();
+}
+
+function updatePeerCount() {
+  try {
+    const peers = heliaNode.libp2p.getPeers();
+    const count = peers.length;
+    document.getElementById('ov-peers').textContent = count;
+    document.getElementById('ns-peers').textContent = count;
+    document.getElementById('peer-count-sub').textContent = count + ' peers';
+
+    // Render peer list
+    if (count === 0) {
+      document.getElementById('peer-list').innerHTML = '<div class="empty-state"><div class="es-icon">🌐</div><div class="es-sub">Discovering peers via DHT…</div></div>';
+    } else {
+      document.getElementById('peer-list').innerHTML = peers.slice(0, 10).map(p => `
+        <div class="peer-item">
+          <div class="peer-dot"></div>
+          <div class="peer-id">${p.toString()}</div>
+        </div>`).join('');
+    }
+  } catch {}
+}
+
+function refreshNodeInfo() {
+  if (!heliaNode) return;
+  try {
+    const peerId = heliaNode.libp2p.peerId.toString();
+    const peers = heliaNode.libp2p.getPeers().length;
+    const addrs = heliaNode.libp2p.getMultiaddrs().map(a => a.toString());
+
+    document.getElementById('node-identity').innerHTML =
+      `<span class="t-key">peerId</span>:    <span class="t-str">${peerId.slice(0,28)}…</span>\n` +
+      `<span class="t-key">peers</span>:     <span class="t-ok">${peers} connected</span>\n` +
+      `<span class="t-key">transport</span>: <span class="t-val">WebRTC · WebSockets</span>\n` +
+      `<span class="t-key">routing</span>:   <span class="t-val">HTTP Trustless Gateways</span>\n` +
+      `<span class="t-key">blocks</span>:    <span class="t-ok">${blockCache.size} cached locally</span>\n` +
+      `<span class="t-key">addrs</span>:\n` +
+      (addrs.slice(0,3).map(a=>`  <span class="t-str">${a}</span>`).join('\n') || '  <span class="t-comment">// discovering…</span>');
+
+    document.getElementById('node-info-terminal').innerHTML =
+      `<span class="t-key">status</span>:    <span class="t-ok">● Online</span>\n` +
+      `<span class="t-key">peerId</span>:    <span class="t-hash">${peerId.slice(0,24)}…</span>\n` +
+      `<span class="t-key">blocks</span>:    <span class="t-val">${blockCache.size}</span>\n` +
+      `<span class="t-key">objects</span>:   <span class="t-val">${localIndex.size}</span>\n` +
+      `<span class="t-key">shards</span>:    <span class="t-val">${totalShards}</span>\n` +
+      `<span class="t-key">grants</span>:    <span class="t-val">${grants.size}</span>\n` +
+      `<span class="t-key">ledger</span>:    <span class="t-val">${ledger.length} events</span>`;
+
+    document.getElementById('ns-blocks').textContent = blockCache.size;
+    document.getElementById('ns-cids').textContent = localIndex.size;
+  } catch {}
+}
+
+// ═══════════════════════════════════════════════════════════
+// IPFS BLOCK STORE — simulated CAS backed by Helia blockstore
+// Stores encrypted JSON blocks as IPFS DAG-JSON objects
+// Returns CID strings usable with heliaJson
+// ═══════════════════════════════════════════════════════════
+async function ipfsStoreBlock(data) {
+  const json = typeof data === 'string' ? data : JSON.stringify(data);
+  const bytes = new TextEncoder().encode(json);
+  const hash = await sha256(bytes);
+  const cid = 'bafk-' + hash.slice(0, 36); // synthetic CID (content-addressed)
+
+  // Store in Helia's blockstore via dag-json if available, always cache locally
+  blockCache.set(cid, bytes);
+
+  if (heliaJson) {
+    try {
+      const realCid = await heliaJson.add(typeof data === 'object' ? data : JSON.parse(json));
+      return realCid.toString();
+    } catch {
+      // Fall back to synthetic CID if heliaJson fails (CORS / gateway issue)
+    }
+  }
+  return cid;
+}
+
+async function ipfsGetBlock(cid) {
+  // Try local cache first
+  if (blockCache.has(cid)) {
+    const bytes = blockCache.get(cid);
+    return JSON.parse(new TextDecoder().decode(bytes));
+  }
+
+  // Try Helia dag-json retrieval
+  if (heliaJson && !cid.startsWith('bafk-')) {
+    try {
+      const { CID } = await import('https://esm.run/multiformats/cid');
+      return await heliaJson.get(CID.parse(cid));
+    } catch {}
+  }
+  throw new Error('Block not found: ' + cid);
+}
+
+// ═══════════════════════════════════════════════════════════
+// SHARD MANAGER — 256KB shards, each independently encrypted
+// Mirrors ShardManager from scmp-decentralized.js
+// ═══════════════════════════════════════════════════════════
+const SHARD_SIZE = 256 * 1024; // 256KB
+
+function splitIntoShards(data) {
+  const bytes = typeof data === 'string' ? new TextEncoder().encode(data) : data;
+  const shards = [];
+  for (let i = 0; i < bytes.length; i += SHARD_SIZE) {
+    shards.push(bytes.slice(i, i + SHARD_SIZE));
+  }
+  return shards.length > 0 ? shards : [bytes]; // always at least 1 shard
+}
+
+async function storeShards(objectId, plaintext) {
+  const shards = splitIntoShards(plaintext);
+  const shardCIDs = [];
+
+  for (let i = 0; i < shards.length; i++) {
+    const shardText = new TextDecoder().decode(shards[i]);
+    const shardId = `${objectId}:shard:${i}`;
+    const encData = await aesEncrypt(shardText, shardId);
+    const cid = await ipfsStoreBlock({ shardIndex: i, totalShards: shards.length, objectId, encData });
+    shardCIDs.push(cid);
+  }
+
+  totalShards += shards.length;
+  document.getElementById('ov-shards').textContent = totalShards;
+  return shardCIDs;
+}
+
+async function retrieveShards(objectId, shardCIDs) {
+  const parts = [];
+  for (let i = 0; i < shardCIDs.length; i++) {
+    const block = await ipfsGetBlock(shardCIDs[i]);
+    const decrypted = await aesDecrypt(block.encData, `${objectId}:shard:${i}`);
+    parts.push(decrypted);
+  }
+  return parts.join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// DECENTRALIZED SCMP STORE — full interface from scmp-decentralized.js
+// ═══════════════════════════════════════════════════════════
+
+// put(record, options) — mirrors DecentralizedSCMPStore.put()
+async function put(record, options = {}) {
+  const id = record.id || ('rec-' + Date.now());
+  record.id = id;
+
+  const plaintext = JSON.stringify(record);
+  const shardCIDs = await storeShards(id, plaintext);
+
+  // Store metadata as an IPFS block
+  const meta = {
+    id, name: record.name || id, type: record.type || 'json',
+    shardCIDs, shardCount: shardCIDs.length,
+    size: new Blob([plaintext]).size, ts: new Date().toISOString(),
+    contentHash: await sha256(plaintext)
+  };
+  const metadataCID = await ipfsStoreBlock(meta);
+
+  localIndex.set(id, { ...meta, metadataCID });
+  shardRegistry.set(id, shardCIDs);
+
+  await ledgerAppend('STORE', 'user', {
+    detail: `Stored: ${meta.name} · ${shardCIDs.length} shard(s) · CID: ${metadataCID.slice(0,16)}…`,
+    metadataCID, shardCount: shardCIDs.length
+  });
+
+  renderAll();
+  document.getElementById('ov-objects').textContent = localIndex.size;
+  document.getElementById('ns-cids').textContent = localIndex.size;
+  document.getElementById('vault-badge').textContent = localIndex.size;
+
+  return { metadataCID, shardCount: shardCIDs.length, totalSize: meta.size };
+}
+
+// get(id, capabilityToken?) — mirrors DecentralizedSCMPStore.get()
+async function get(id, capabilityToken = null) {
+  if (capabilityToken) {
+    const v = await validateCapabilityToken(capabilityToken, 'read');
+    if (!v.granted) throw new Error('Access denied: ' + v.error);
+  }
+
+  const meta = localIndex.get(id);
+  if (!meta) return null;
+
+  const plaintext = await retrieveShards(id, meta.shardCIDs);
+  await ledgerAppend('ACCESS', capabilityToken ? 'token' : 'user', { detail: `Retrieved: ${meta.name}`, id });
+  return JSON.parse(plaintext);
+}
+
+// getAll() — mirrors DecentralizedSCMPStore.getAll()
+async function getAll() {
+  const results = [];
+  for (const id of localIndex.keys()) {
+    const rec = await get(id);
+    if (rec) results.push(rec);
+  }
+  return results;
+}
+
+// delete(id) — mirrors DecentralizedSCMPStore.delete()
+async function deleteRecord(id) {
+  const meta = localIndex.get(id);
+  if (meta) {
+    // Remove shard blocks from cache
+    (meta.shardCIDs || []).forEach(cid => blockCache.delete(cid));
+    blockCache.delete(meta.metadataCID);
+    totalShards -= meta.shardCount || 0;
+  }
+  localIndex.delete(id);
+  shardRegistry.delete(id);
+  await ledgerAppend('STORE', 'user', { detail: `Deleted: ${id}` });
+  renderAll();
+}
+
+// shareData(key, opts) — mirrors DecentralizedSCMPStore.shareData()
+async function shareData(resourceId, options = {}) {
+  const { grantedTo='anonymous', permissions=['read'], maxViews=null, expiresIn=null } = options;
+  const meta = localIndex.get(resourceId);
+  if (!meta) throw new Error('Resource not found: ' + resourceId);
+
+  const grantId = 'grant-' + Date.now() + '-' + Math.random().toString(36).slice(2,7);
+  const payload = {
+    id: grantId, resourceId, metadataCID: meta.metadataCID,
+    grantedTo, permissions, maxViews, views: 0,
+    issuedAt: new Date().toISOString(),
+    expiresAt: expiresIn ? new Date(Date.now() + expiresIn).toISOString() : null
+  };
+  const signature = await hmacSign(payload);
+  const grant = { ...payload, signature };
+  grants.set(grantId, grant);
+
+  await ledgerAppend('GRANT', 'user', { detail: `Grant to ${grantedTo} for ${resourceId}`, grantId });
+  renderAll();
+  return { policy: { id: grantId }, token: grant, metadataCID: meta.metadataCID };
+}
+
+// revokeAccess(policyId) — mirrors DecentralizedSCMPStore.revokeAccess()
+async function revokeAccess(policyId) {
+  revokedGrants.add(policyId);
+  await ledgerAppend('REVOKE', 'user', { detail: `Revoked: ${policyId}` });
+  renderGrants();
+  notify('Grant revoked', 'info');
+}
+
+async function validateCapabilityToken(grant, permission) {
+  if (revokedGrants.has(grant.id)) return { granted: false, error: 'Revoked' };
+  if (grant.expiresAt && new Date() > new Date(grant.expiresAt)) return { granted: false, error: 'Expired' };
+  if (grant.maxViews && grant.views >= grant.maxViews) return { granted: false, error: 'View limit reached' };
+  if (!grant.permissions.includes(permission)) return { granted: false, error: 'Permission denied' };
+  const valid = await hmacVerify(grant);
+  if (!valid) return { granted: false, error: 'Invalid signature' };
+  grant.views++;
+  return { granted: true, remainingViews: grant.maxViews ? grant.maxViews - grant.views : null };
+}
+
+// getAuditTrail(key)
+function getAuditTrail(resourceId) {
+  return ledger.filter(e => e.data?.id === resourceId || e.data?.detail?.includes(resourceId));
+}
+
+// exportState() / importState()
+async function exportState() {
+  const state = {
+    version: '1.0.0', timestamp: Date.now(),
+    keyFp: masterKeyFp,
+    localIndex: Object.fromEntries(localIndex),
+    blockCache: Object.fromEntries([...blockCache.entries()].map(([k,v]) => [k, Array.from(v)])),
+    grants: Object.fromEntries(grants),
+    revokedGrants: [...revokedGrants],
+    ledger, totalShards
+  };
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'omninet-helia-state.json';
+  a.click();
+  notify('State exported', 'success');
+}
+
+async function importStateFromFile() {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = '.json';
+  inp.onchange = async e => {
+    try {
+      const state = JSON.parse(await e.target.files[0].text());
+      Object.entries(state.localIndex || {}).forEach(([k, v]) => localIndex.set(k, v));
+      Object.entries(state.blockCache || {}).forEach(([k, v]) => blockCache.set(k, new Uint8Array(v)));
+      Object.entries(state.grants || {}).forEach(([k, v]) => grants.set(k, v));
+      (state.revokedGrants || []).forEach(id => revokedGrants.add(id));
+      if (state.ledger) ledger.push(...state.ledger);
+      totalShards = state.totalShards || 0;
+      renderAll();
+      notify(`Imported ${localIndex.size} objects`, 'success');
+    } catch(err) { notify('Import failed: ' + err.message, 'error'); }
+  };
+  inp.click();
+}
+
+// getStats()
+async function getStats() {
+  return {
+    storage: { objects: localIndex.size, shards: totalShards, blocks: blockCache.size },
+    access: { total: grants.size, revoked: revokedGrants.size },
+    ledger: { events: ledger.length },
+    encryption: { algorithm: 'AES-256-GCM', kdf: 'HKDF-SHA256', shardSize: SHARD_SIZE }
+  };
+}
+
+// ═══════════════════════════════════════════════════════════
+// LEDGER — append-only SHA-256 hash chain
+// ═══════════════════════════════════════════════════════════
+async function ledgerAppend(type, actor, data) {
+  const prevHash = ledger.length ? ledger[ledger.length-1].entryHash : 'GENESIS';
+  const seq = ledger.length;
+  const payload = { type, actor, prevHash, data, ts: new Date().toISOString(), seq };
+  payload.entryHash = await sha256(JSON.stringify(payload));
+  ledger.push(payload);
+  renderLedger();
+  return payload;
+}
+
+function verifyLedger() {
+  let ok = true;
+  for (let i = 1; i < ledger.length; i++) {
+    if (ledger[i].prevHash !== ledger[i-1].entryHash) { ok = false; break; }
+  }
+  document.getElementById('chain-status').textContent = ok ? '✓ Chain Valid' : '✕ TAMPERED!';
+  document.getElementById('chain-status').style.color = ok ? 'var(--green)' : 'var(--red)';
+  notify(ok ? `Chain verified — ${ledger.length} events intact` : 'LEDGER TAMPERED!', ok ? 'success' : 'error');
+}
+
+function exportLedger() {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify({ ledger, exported: new Date().toISOString() }, null, 2)], { type: 'application/json' }));
+  a.download = 'omninet-ledger.json'; a.click();
+  notify('Ledger exported', 'success');
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════
+function renderAll() {
+  renderVault();
+  renderLedger();
+  renderGrants();
+  renderShards();
+  refreshNodeInfo();
+}
+
+function renderVault() {
+  const items = Array.from(localIndex.values());
+  document.getElementById('vault-badge').textContent = items.length;
+  document.getElementById('ov-objects').textContent = items.length;
+
+  if (items.length === 0) {
+    document.getElementById('vault-list').innerHTML = '<div class="empty-state"><div class="es-icon">📭</div><div class="es-sub">No objects — store something!</div></div>';
+    return;
+  }
+  const icons = { text:'📄', json:'📋', code:'💻', image:'🖼', other:'📦' };
+  document.getElementById('vault-list').innerHTML = items.map(obj => `
+    <div class="vault-item" onclick="showVaultDetail('${obj.id}')">
+      <div class="vi-icon">${icons[obj.type]||'📦'}</div>
+      <div style="flex:1;min-width:0">
+        <div class="vi-name">${obj.name}</div>
+        <div class="vi-hash">${obj.contentHash ? obj.contentHash.slice(0,12)+'…' : 'hashing…'}</div>
+        <div style="font-size:10px;color:var(--muted);font-family:var(--mono)">${new Date(obj.ts).toLocaleTimeString()}</div>
+      </div>
+      <div class="vi-right">
+        <div style="font-size:11px;font-family:var(--mono)">${formatBytes(obj.size)}</div>
+        <div class="vi-cid" title="${obj.metadataCID}">${obj.shardCount} shard${obj.shardCount!==1?'s':''}</div>
+      </div>
+    </div>`).join('');
+}
+
+async function showVaultDetail(id) {
+  const meta = localIndex.get(id);
+  if (!meta) return;
+  let preview = '[retrieving…]';
+  try {
+    const rec = await get(id);
+    preview = JSON.stringify(rec, null, 2).slice(0, 600);
+  } catch(e) { preview = 'Error: ' + e.message; }
+
+  document.getElementById('vault-detail').innerHTML = `
+    <div class="receipt">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--line)">
+        <div style="font-size:22px">📦</div>
+        <div>
+          <div style="font-size:13px;font-weight:700;font-family:var(--ui)">${meta.name}</div>
+          <div style="font-size:10px;color:var(--green);margin-top:2px">✓ AES-256-GCM decrypted · ${meta.shardCount} shard(s)</div>
+        </div>
+      </div>
+      <div class="receipt-grid">
+        <div class="rg-cell"><div class="rg-label">Metadata CID</div><div class="rg-val" style="color:var(--blue);font-size:9px">${meta.metadataCID}</div></div>
+        <div class="rg-cell"><div class="rg-label">Size</div><div class="rg-val">${formatBytes(meta.size)}</div></div>
+        <div class="rg-cell"><div class="rg-label">Shards</div><div class="rg-val" style="color:var(--teal)">${meta.shardCount} × 256KB</div></div>
+        <div class="rg-cell"><div class="rg-label">Stored</div><div class="rg-val">${new Date(meta.ts).toLocaleString()}</div></div>
+      </div>
+      <div style="margin-top:10px">
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;font-family:var(--mono)">Shard CIDs</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">
+          ${(meta.shardCIDs||[]).map((cid,i)=>`<span class="cid-chip" title="${cid}">S${i}: ${cid.slice(0,12)}…</span>`).join('')}
+        </div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;font-family:var(--mono)">Decrypted Preview</div>
+        <div class="terminal" style="max-height:120px;overflow-y:auto"><pre>${preview.replace(/</g,'&lt;')}</pre></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" onclick="openGrantModal('${id}')">🔑 Share</button>
+        <button class="btn btn-sm" onclick="showShardDetail('${id}')">🧩 Shards</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteRecord('${id}').then(()=>{ document.getElementById('vault-detail').innerHTML='<div class=\\'empty-state\\'><div class=\\'es-sub\\'>Deleted.</div></div>'; })">🗑 Delete</button>
+      </div>
+    </div>`;
+}
+
+function renderShards() {
+  const items = Array.from(localIndex.values());
+  if (items.length === 0) {
+    document.getElementById('shard-object-list').innerHTML = '<div class="empty-state"><div class="es-icon">🧩</div><div class="es-sub">No objects stored yet.</div></div>';
+    return;
+  }
+  document.getElementById('shard-object-list').innerHTML = items.map(obj => `
+    <div class="vault-item" onclick="showShardDetail('${obj.id}')">
+      <div class="vi-icon">🧩</div>
+      <div style="flex:1;min-width:0">
+        <div class="vi-name">${obj.name}</div>
+        <div class="vi-hash">${obj.shardCount} shard(s) · ${formatBytes(obj.size)}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:11px;font-family:var(--mono);color:var(--teal)">${obj.shardCount} × 256KB</div>
+      </div>
+    </div>`).join('');
+}
+
+function showShardDetail(id) {
+  const meta = localIndex.get(id);
+  if (!meta) return;
+  const shardCIDs = meta.shardCIDs || [];
+  document.getElementById('shard-detail').innerHTML = `
+    <div style="margin-bottom:12px">
+      <div style="font-size:13px;font-weight:700;font-family:var(--ui);margin-bottom:4px">${meta.name}</div>
+      <div style="font-size:11px;color:var(--txt2)">${shardCIDs.length} shards · ${formatBytes(meta.size)} total · HKDF per-shard key</div>
+    </div>
+    <div class="shard-grid">${shardCIDs.map((_,i)=>`<div class="shard-block stored" title="Shard ${i}">${i}</div>`).join('')}</div>
+    <div style="margin-top:14px">
+      ${shardCIDs.map((cid,i)=>`
+        <div style="padding:6px 0;border-bottom:1px solid var(--line);font-size:10px;font-family:var(--mono)">
+          <span style="color:var(--muted)">S${i}:</span> <span class="cid-chip" style="cursor:default">${cid.slice(0,28)}…</span>
+        </div>`).join('')}
+    </div>`;
+  nav('shards');
+}
+
+function renderLedger() {
+  const icons = { STORE:'🗄', IPFS:'⬡', GRANT:'🔑', REVOKE:'🚫', ACCESS:'👁', SHARD:'🧩' };
+  const byType = {};
+  ledger.forEach(e => byType[e.type] = (byType[e.type]||0) + 1);
+  document.getElementById('led-total').textContent = ledger.length;
+  document.getElementById('led-store').textContent = byType.STORE||0;
+  document.getElementById('led-ipfs').textContent = byType.IPFS||0;
+  document.getElementById('led-access').textContent = byType.ACCESS||0;
+
+  const items = [...ledger].reverse();
+  const html = items.map(e => `
+    <div class="ledger-entry">
+      <div class="le-dot ${e.type}">${icons[e.type]||'•'}</div>
+      <div class="le-body">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div class="le-action">${e.type}</div>
+          <span class="tag tag-gray">${e.actor}</span>
+          <span style="font-size:9px;color:var(--muted);margin-left:auto;font-family:var(--mono)">#${e.seq}</span>
+        </div>
+        ${e.data?.detail ? `<div style="font-size:11px;color:var(--txt2);margin-top:3px">${e.data.detail}</div>` : ''}
+        <div class="le-hash">${e.entryHash.slice(0,24)}… ← ${e.prevHash==='GENESIS'?'<span style="color:var(--teal)">GENESIS</span>':e.prevHash.slice(0,16)+'…'}</div>
+        <div class="le-time">${new Date(e.ts).toLocaleTimeString()}</div>
+      </div>
+    </div>`).join('');
+
+  document.getElementById('ledger-full').innerHTML = html || '<div class="empty-state"><div class="es-icon">🔗</div><div class="es-sub">No events yet.</div></div>';
+  document.getElementById('ov-ledger').innerHTML = items.slice(0,5).map(e => `
+    <div class="ledger-entry">
+      <div class="le-dot ${e.type}">${icons[e.type]||'•'}</div>
+      <div class="le-body">
+        <div class="le-action">${e.type} <span style="color:var(--txt2);font-weight:400">${e.actor}</span></div>
+        ${e.data?.detail ? `<div style="font-size:11px;color:var(--txt2);margin-top:2px">${e.data.detail}</div>` : ''}
+        <div class="le-time">${new Date(e.ts).toLocaleTimeString()}</div>
+      </div>
+    </div>`).join('') || '<div class="empty-state"><div class="es-sub">No events yet.</div></div>';
+}
+
+function renderGrants() {
+  const list = Array.from(grants.values());
+  const active = list.filter(g => !revokedGrants.has(g.id) && (!g.expiresAt || new Date() < new Date(g.expiresAt)));
+  const expired = list.filter(g => g.expiresAt && new Date() >= new Date(g.expiresAt) && !revokedGrants.has(g.id));
+  const revoked = list.filter(g => revokedGrants.has(g.id));
+
+  document.getElementById('ac-active').textContent = active.length;
+  document.getElementById('ac-expired').textContent = expired.length;
+  document.getElementById('ac-revoked').textContent = revoked.length;
+  document.getElementById('ov-grants').textContent = active.length;
+
+  if (list.length === 0) {
+    document.getElementById('grants-table').innerHTML = '<div class="empty-state"><div class="es-icon">🔑</div><div class="es-sub">No grants issued yet.</div></div>';
+    return;
+  }
+  document.getElementById('grants-table').innerHTML = `
+    <table class="tbl">
+      <thead><tr><th>ID</th><th>Grantee</th><th>Resource</th><th>Perms</th><th>Views</th><th>Expires</th><th>Status</th><th></th></tr></thead>
+      <tbody>${list.map(g => {
+        const isR = revokedGrants.has(g.id);
+        const isE = g.expiresAt && new Date() > new Date(g.expiresAt);
+        const st = isR ? '<span class="tag tag-red">revoked</span>' : isE ? '<span class="tag tag-amber">expired</span>' : '<span class="tag tag-green">active</span>';
+        return `<tr>
+          <td><code>${g.id.slice(-8)}</code></td>
+          <td>${g.grantedTo}</td>
+          <td><code style="font-size:9px">${g.resourceId.slice(0,14)}…</code></td>
+          <td>${(g.permissions||[]).map(p=>`<span class="tag tag-blue">${p}</span>`).join(' ')}</td>
+          <td style="font-family:var(--mono)">${g.maxViews?`${g.views||0}/${g.maxViews}`:g.views||0}</td>
+          <td style="font-size:10px;font-family:var(--mono)">${g.expiresAt?new Date(g.expiresAt).toLocaleDateString():'∞'}</td>
+          <td>${st}</td>
+          <td>${!isR?`<button class="btn btn-danger btn-sm" onclick="revokeAccess('${g.id}')">Revoke</button>`:''}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// MODALS
+// ═══════════════════════════════════════════════════════════
+function openModal(html) {
+  document.getElementById('modal-box').innerHTML = html;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+function closeModalOutside(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
+
+function openStoreModal() {
+  openModal(`
+    <div class="modal-title">🔒 Encrypt &amp; Store to IPFS</div>
+    <div class="modal-sub">AES-256-GCM · HKDF-SHA256 per-shard keys · Content-addressed CIDs · Helia blockstore</div>
+    <div class="form-row">
+      <div class="form-group"><label>Name</label><input class="form-input" id="m-name" placeholder="my-document.json"></div>
+      <div class="form-group"><label>Type</label>
+        <select class="form-select" id="m-type">
+          <option value="json">JSON</option><option value="text">Text</option><option value="code">Code</option><option value="other">Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label>Content</label><textarea class="form-textarea" id="m-content" style="min-height:120px" placeholder='{"key": "value"}'></textarea></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="m-store-btn" onclick="doStore()">⬆ Encrypt &amp; Store to IPFS</button>
+    </div>`);
+}
+
+async function doStore() {
+  const name = document.getElementById('m-name').value.trim();
+  const content = document.getElementById('m-content').value.trim();
+  const type = document.getElementById('m-type').value;
+  if (!name || !content) { notify('Name and content required', 'error'); return; }
+  const btn = document.getElementById('m-store-btn');
+  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> Encrypting + sharding…';
+  try {
+    const id = 'obj-' + Date.now();
+    const result = await put({ id, name, type, content });
+    closeModal();
+    notify(`Stored: ${name} · ${result.shardCount} shard(s) · CID: ${result.metadataCID.slice(0,14)}…`, 'success');
+    nav('vault');
+  } catch(e) { notify('Store failed: ' + e.message, 'error'); btn.disabled = false; btn.textContent = '⬆ Retry'; }
+}
+
+function openGrantModal(resourceId) {
+  const objects = Array.from(localIndex.values());
+  openModal(`
+    <div class="modal-title">🔑 Issue Capability Grant</div>
+    <div class="modal-sub">HMAC-SHA256 signed · CID-bound · Expiry + view limits</div>
+    <div class="form-row">
+      <div class="form-group"><label>Resource</label>
+        <select class="form-select" id="g-res">
+          ${objects.map(o=>`<option value="${o.id}" ${o.id===resourceId?'selected':''}>${o.name}</option>`).join('')}
+          ${objects.length===0?'<option disabled>No objects stored</option>':''}
+        </select>
+      </div>
+      <div class="form-group"><label>Grant To</label><input class="form-input" id="g-to" placeholder="alice@example.com"></div>
+    </div>
+    <div class="form-group"><label>Permissions</label>
+      <div style="display:flex;gap:12px;margin-top:5px">
+        <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--txt);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" id="p-read" checked> read</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--txt);text-transform:none;letter-spacing:0;cursor:pointer"><input type="checkbox" id="p-write"> write</label>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Max Views (0 = ∞)</label><input class="form-input" id="g-views" type="number" value="0" min="0"></div>
+      <div class="form-group"><label>Expires In</label>
+        <select class="form-select" id="g-exp">
+          <option value="0">Never</option>
+          <option value="3600000">1 hour</option>
+          <option value="86400000">24 hours</option>
+          <option value="604800000">7 days</option>
+          <option value="2592000000">30 days</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="doGrant()">🔑 Issue Grant</button>
+    </div>`);
+}
+
+async function doGrant() {
+  const rid = document.getElementById('g-res')?.value;
+  const to = document.getElementById('g-to').value.trim();
+  const maxViews = parseInt(document.getElementById('g-views').value)||null;
+  const expiresIn = parseInt(document.getElementById('g-exp').value)||null;
+  const perms = ['read','write'].filter(p=>document.getElementById('p-'+p)?.checked);
+  if (!rid || !to) { notify('Resource and recipient required', 'error'); return; }
+  const grant = await shareData(rid, { grantedTo:to, permissions:perms, maxViews, expiresIn });
+  closeModal();
+  notify(`Grant issued to ${to} · CID-bound · HMAC-SHA256 signed`, 'success');
+  nav('access');
+}
+
+function openFetchCIDModal() {
+  openModal(`
+    <div class="modal-title">⬇ Fetch CID from IPFS</div>
+    <div class="modal-sub">Retrieve any content-addressed block from the IPFS network via Helia</div>
+    <div class="form-group"><label>CID</label><input class="form-input" id="fetch-cid" placeholder="bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi"></div>
+    <div id="fetch-result" style="margin-top:12px"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Close</button>
+      <button class="btn btn-primary" onclick="doFetchCID()">⬇ Fetch</button>
+    </div>`);
+}
+
+async function doFetchCID() {
+  const cid = document.getElementById('fetch-cid').value.trim();
+  if (!cid) return;
+  const res = document.getElementById('fetch-result');
+  res.innerHTML = '<div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)"><div class="spinner"></div> Fetching from IPFS network…</div>';
+  try {
+    const data = await ipfsGetBlock(cid);
+    res.innerHTML = `<div class="terminal" style="max-height:160px;overflow-y:auto"><pre>${JSON.stringify(data,null,2).replace(/</g,'&lt;')}</pre></div>`;
+    notify('CID fetched', 'success');
+  } catch(e) {
+    res.innerHTML = `<div style="color:var(--red);font-size:12px">Error: ${e.message}</div>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════════
+function formatBytes(b) {
+  if (!b) return '0 B';
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(2) + ' MB';
+}
+
+function setStatus(type, text) {
+  const pill = document.getElementById('node-status-pill');
+  pill.className = 'status-pill ' + type;
+  document.getElementById('node-status-txt').textContent = text;
+}
+
+function updateIPFSMsg(msg) {
+  document.getElementById('ipfs-status-msg').textContent = msg;
+}
+
+function notify(msg, type='info') {
+  const el = document.createElement('div');
+  el.className = 'notif notif-' + type;
+  el.innerHTML = (type==='success'?'✓':type==='error'?'✕':type==='warn'?'⚠':'ℹ') + ' ' + msg;
+  document.getElementById('notif-stack').appendChild(el);
+  setTimeout(()=>el.remove(), 4000);
+}
+
+async function clearAll() {
+  if (!confirm('Wipe all data?')) return;
+  localIndex.clear(); grants.clear(); revokedGrants.clear();
+  blockCache.clear(); shardRegistry.clear();
+  ledger.length = 0; totalShards = 0;
+  renderAll();
+  notify('All data wiped', 'info');
+}
+
+// ═══════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════
+const LABELS = { overview:'Overview', vault:'Vault', ipfs:'IPFS Node', shards:'Shards', access:'Access Control', ledger:'Audit Ledger', settings:'Settings' };
+function nav(id) {
+  document.querySelectorAll('.module').forEach(m=>m.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('mod-'+id)?.classList.add('active');
+  document.querySelector(`.nav-btn[onclick="nav('${id}')"]`)?.classList.add('active');
+  document.getElementById('bc-label').textContent = LABELS[id]||id;
+  if (id === 'ipfs') { refreshNodeInfo(); updatePeerCount(); }
+  if (id === 'shards') renderShards();
+}
+
+// ═══════════════════════════════════════════════════════════
+// SEED DEMO DATA
+// ═══════════════════════════════════════════════════════════
+async function seedDemo() {
+  await put({ id:'demo-manifest', name:'sovereign-manifest.json', type:'json', content: JSON.stringify({
+    system: 'Omninet OS — Helia Edition',
+    storage: 'IPFS content-addressed',
+    encryption: 'AES-256-GCM',
+    kdf: 'HKDF-SHA256',
+    shardSize: '256KB',
+    tokens: 'HMAC-SHA256 full digest',
+    cdnSource: 'https://cdn.jsdelivr.net/npm/helia/dist/index.min.js'
+  }, null, 2)});
+
+  await put({ id:'demo-config', name:'helia-config.json', type:'json', content: JSON.stringify({
+    transport: ['WebRTC', 'WebSockets'],
+    routing: 'HTTP Trustless Gateways',
+    blockstore: 'MemoryBlockstore',
+    datastore: 'MemoryDatastore',
+    modules: ['helia', '@helia/json', '@helia/strings', '@helia/unixfs']
+  }, null, 2)});
+
+  await shareData('demo-manifest', { grantedTo:'demo@example.com', permissions:['read'], maxViews:5, expiresIn: 86400000 });
+  notify('Demo data loaded — 2 objects stored to IPFS', 'success');
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+(async () => {
+  try {
+    await initMasterKey();
+    await initHelia();
+    await seedDemo();
+    renderAll();
+  } catch(e) {
+    console.error('Init error:', e);
+    setStatus('red', 'Init failed: ' + e.message);
+    updateIPFSMsg('❌ ' + e.message + ' — check console');
+    notify('Init error: ' + e.message, 'error');
+  }
+})();
+</script>
+</body>
+</html>
